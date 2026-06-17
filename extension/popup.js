@@ -1,42 +1,46 @@
 // popup.js
-// Customer-facing: shows whether Spotify is open and gives one OBS link to copy.
+// Shows whether Spotify is open and gives one OBS link to copy.
+// The relay URL always comes from config.js (RELAY_URL); the channel is
+// auto-generated and persisted. Customers never type anything.
 
 const statusEl = document.getElementById("status");
 const obsLinkEl = document.getElementById("obsLink");
 const spotifyStatusEl = document.getElementById("spotifyStatus");
 
-// Build the ready-to-paste OBS URL from the stored channel + relay.
-async function buildLink() {
-  const { channel, relayUrl } = await chrome.storage.local.get({
-    channel: "",
-    relayUrl: RELAY_URL,
-  });
+const PLACEHOLDER_CHANNELS = ["", "your-unique-name", "default"];
 
-  if (!channel) {
-    obsLinkEl.textContent = "Generating your link…";
-    return "";
+// Ensure a valid channel exists, fixing any stale/placeholder value.
+async function ensureChannel() {
+  const { channel } = await chrome.storage.local.get({ channel: "" });
+  let ch = channel;
+  if (PLACEHOLDER_CHANNELS.includes(ch)) {
+    ch = "sp-" + Math.random().toString(36).slice(2, 10);
   }
+  // Pin relay to config value too, so old localhost data is cleared.
+  await chrome.storage.local.set({ channel: ch, relayUrl: RELAY_URL });
+  return ch;
+}
 
+async function buildLink() {
+  const channel = await ensureChannel();
   const url =
     WIDGET_BASE_URL +
     "?relay=" +
-    encodeURIComponent(relayUrl) +
+    encodeURIComponent(RELAY_URL) +
     "&channel=" +
     encodeURIComponent(channel);
-
   obsLinkEl.textContent = url;
   return url;
 }
 
-// Check if a Spotify Web Player tab is open.
 async function checkSpotify() {
   try {
     const tabs = await chrome.tabs.query({ url: "https://open.spotify.com/*" });
     if (tabs.length) {
-      spotifyStatusEl.innerHTML = '<span class="ok">✓ Spotify is open. You are good to go.</span>';
+      spotifyStatusEl.innerHTML = '<span class="ok">&#10003; Spotify is open. You are good to go.</span>';
     } else {
       spotifyStatusEl.innerHTML =
-        '<span class="warn">⚠ Open open.spotify.com and play a song.</span>';
+        '<span class="warn">&#9888; Open open.spotify.com and play a song.</span>';
     }
   } catch (e) {
     spotifyStatusEl.textContent = "";
