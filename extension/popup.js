@@ -35,12 +35,18 @@ async function buildLink() {
 
 async function checkSpotify() {
   try {
-    const tabs = await chrome.tabs.query({ url: "https://open.spotify.com/*" });
+    const tabs = await chrome.tabs.query({
+      url: [
+        "https://open.spotify.com/*",
+        "https://music.apple.com/*",
+        "https://music.youtube.com/*",
+      ],
+    });
     if (tabs.length) {
-      spotifyStatusEl.innerHTML = '<span class="ok">&#10003; Spotify is open. You are good to go.</span>';
+      spotifyStatusEl.innerHTML = '<span class="ok">&#10003; Music tab open. You are good to go.</span>';
     } else {
       spotifyStatusEl.innerHTML =
-        '<span class="warn">&#9888; Open open.spotify.com and play a song.</span>';
+        '<span class="warn">&#9888; Open Spotify, Apple Music, or YouTube Music and play a song.</span>';
     }
   } catch (e) {
     spotifyStatusEl.textContent = "";

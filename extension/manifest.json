@@ -1,22 +1,40 @@
 {
   "manifest_version": 3,
-  "name": "Spotify -> StreamElements Now Playing",
-  "version": "1.0.0",
-  "description": "Reads the Spotify Web Player and streams now-playing data to a StreamElements / OBS music widget.",
-  "permissions": ["storage"],
-  "host_permissions": ["https://open.spotify.com/*"],
+  "name": "Music -> StreamElements Now Playing",
+  "version": "2.0.0",
+  "description": "Streams now-playing info from Spotify, Apple Music, and YouTube Music to a StreamElements / OBS widget.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://open.spotify.com/*",
+    "https://music.apple.com/*",
+    "https://music.youtube.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://open.spotify.com/*"],
+      "matches": [
+        "https://open.spotify.com/*",
+        "https://music.apple.com/*",
+        "https://music.youtube.com/*"
+      ],
+      "js": ["mediasession.js"],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://open.spotify.com/*",
+        "https://music.apple.com/*",
+        "https://music.youtube.com/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Spotify Now Playing Settings"
+    "default_title": "Music Now Playing Settings"
   }
 }
