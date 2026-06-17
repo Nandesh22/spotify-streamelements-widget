@@ -1,5 +1,12 @@
-// StreamElements custom widget — animated card with visualizer.
-// The visualizer animates while music plays and freezes when paused.
+// StreamElements custom widget — animated card with REAL audio visualizer.
+//
+// Visualizer sources (in priority order):
+//   1. OBS WebSocket (ws://127.0.0.1:<port>) InputVolumeMeters  -> real, zero-latency
+//   2. Custom audio WebSocket (FFT/levels feed)
+//   3. Animated equalizer (fallback, no audio source)
+//
+// The localhost connection works because OBS's Browser Source (CEF) exempts
+// loopback addresses from mixed-content blocking.
 
 let FD = {};
 let SE_RELAY = "wss://music.noblenestel.giize.com";
@@ -33,7 +40,6 @@ function setVar(name, val) {
 function applyStyles() {
   const card = document.getElementById("card");
   if (FD.font) card.style.fontFamily = '"' + FD.font + '", sans-serif';
-
   setVar("--width", (FD.cardWidth || 360) + "px");
   setVar("--radius", (FD.cornerRadius || 28) + "px");
   setVar("--artHeight", (FD.albumHeight || 470) + "px");
@@ -49,7 +55,6 @@ function applyStyles() {
   setVar("--titleSize", (FD.titleSize || 21) + "px");
   setVar("--artistSize", (FD.artistSize || 15) + "px");
 
-  // Toggles
   if (FD.showVisualizer === "no") document.getElementById("vizwrap").style.display = "none";
   if (FD.showTimes === "no") {
     document.getElementById("cur").style.display = "none";
@@ -59,6 +64,19 @@ function applyStyles() {
   if (FD.showPlayButton === "no") document.getElementById("playbtn").style.display = "none";
   if (FD.showProgress === "no") document.getElementById("progress").style.display = "none";
   if (FD.showTotalBadge === "no") document.getElementById("totalBadge").style.display = "none";
+}
+
+// ---- OBS WebSocket v5 auth helpers -----------------------------------------
+async function sha256b64(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  let bin = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+async function buildAuth(password, salt, challenge) {
+  const secret = await sha256b64(password + salt);
+  return await sha256b64(secret + challenge);
 }
 
 function start() {
@@ -96,7 +114,6 @@ function start() {
     state.positionMs = d.positionMs || 0;
     state.isPlaying = !!d.isPlaying;
     state.lastSyncWall = Date.now();
-
     if (d.cover !== state.cover) {
       state.cover = d.cover;
       if (d.cover) els.cover.src = d.cover;
@@ -109,7 +126,6 @@ function start() {
     els.artist.textContent = d.artist || "";
     els.iconPlay.style.display = state.isPlaying ? "none" : "block";
     els.iconPause.style.display = state.isPlaying ? "block" : "none";
-
     const visible = d.track && (state.isPlaying || !HIDE_PAUSED);
     els.card.classList.toggle("show", !!visible);
   }
@@ -119,36 +135,84 @@ function start() {
   const ctx = canvas.getContext("2d");
   const BARS = Math.max(8, Math.min(96, parseInt(FD.visualizerBars, 10) || 48));
   const VIZ_COLOR = FD.visualizerColor || "#e7b54a";
-  const levels = new Array(BARS).fill(0.1);
-  const targets = new Array(BARS).fill(0.1);
-  let lastTargetUpdate = 0;
+  const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.6;
 
-  // ---- Real audio feed (optional) -----------------------------------------
-  // If an audio WebSocket is provided, use live FFT data for the bars.
-  const AUDIO_URL = FD.audioWsUrl || "";
-  const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.4;
-  let audioBands = [];   // resampled to BARS, normalized 0..1
+  const levels = new Array(BARS).fill(0.06);
+  const targets = new Array(BARS).fill(0.06);
+  const shape = new Array(BARS).fill(0.4); // per-bar spectrum shape (0..1)
+  let lastShapeUpdate = 0;
+
+  // Live audio state.
+  let liveMode = "";          // "level" (OBS) | "bands" (custom WS)
+  let liveLevel = 0;          // 0..1 overall amplitude (OBS)
+  let audioBands = [];        // resampled bands (custom WS)
   let lastAudioMsg = 0;
 
-  // Resample an arbitrary-length array down/up to `n` bins by averaging.
   function resample(src, n) {
     if (!src || !src.length) return [];
     if (src.length === n) return src.slice();
     const out = new Array(n);
     const ratio = src.length / n;
     for (let i = 0; i < n; i++) {
-      const start = Math.floor(i * ratio);
-      const end = Math.max(start + 1, Math.floor((i + 1) * ratio));
-      let sum = 0, c = 0;
-      for (let j = start; j < end && j < src.length; j++) { sum += src[j]; c++; }
-      out[i] = c ? sum / c : 0;
+      const a = Math.floor(i * ratio);
+      const b = Math.max(a + 1, Math.floor((i + 1) * ratio));
+      let s = 0, c = 0;
+      for (let j = a; j < b && j < src.length; j++) { s += src[j]; c++; }
+      out[i] = c ? s / c : 0;
     }
     return out;
   }
 
-  // Turn an incoming message into a numeric array of band magnitudes.
+  function updateShape() {
+    for (let i = 0; i < BARS; i++) {
+      const center = 1 - Math.abs(i - BARS / 2) / (BARS / 2);
+      shape[i] = 0.35 + Math.random() * 0.5 + center * 0.25;
+    }
+  }
+
+  // ---- Source 1: OBS WebSocket ---------------------------------------------
+  const OBS_PORT = (FD.obsPort || "4455").toString().replace(/\D/g, "") || "4455";
+  const OBS_PASSWORD = FD.obsPassword || "";
+  const OBS_SOURCE = (FD.obsSource || "").trim();
+  const USE_OBS = FD.useObsAudio !== "no";
+
+  function connectOBS() {
+    let ws;
+    try { ws = new WebSocket("ws://127.0.0.1:" + OBS_PORT); }
+    catch (e) { setTimeout(connectOBS, 4000); return; }
+
+    ws.onmessage = async (ev) => {
+      let m;
+      try { m = JSON.parse(ev.data); } catch (_) { return; }
+
+      if (m.op === 0) {
+        const d = m.d || {};
+        const identify = { op: 1, d: { rpcVersion: d.rpcVersion || 1, eventSubscriptions: (1 << 16) } };
+        if (d.authentication) {
+          identify.d.authentication = await buildAuth(OBS_PASSWORD, d.authentication.salt, d.authentication.challenge);
+        }
+        ws.send(JSON.stringify(identify));
+      } else if (m.op === 5 && m.d && m.d.eventType === "InputVolumeMeters") {
+        const inputs = (m.d.eventData && m.d.eventData.inputs) || [];
+        let level = 0;
+        for (const inp of inputs) {
+          if (OBS_SOURCE && inp.inputName !== OBS_SOURCE) continue;
+          const chans = inp.inputLevelsMul || [];
+          for (const ch of chans) for (const v of ch) if (v > level) level = v;
+          if (OBS_SOURCE) break;
+        }
+        liveLevel = level;
+        liveMode = "level";
+        lastAudioMsg = performance.now();
+      }
+    };
+    ws.onclose = () => setTimeout(connectOBS, 4000);
+    ws.onerror = () => { try { ws.close(); } catch (_) {} };
+  }
+
+  // ---- Source 2: Custom audio WebSocket ------------------------------------
+  const AUDIO_URL = FD.audioWsUrl || "";
   function parseAudio(data) {
-    // Binary (e.g., AnalyserNode.getByteFrequencyData -> Uint8 0..255).
     if (data instanceof ArrayBuffer) return Array.from(new Uint8Array(data));
     if (typeof data === "string") {
       const s = data.trim();
@@ -159,31 +223,31 @@ function start() {
           return j.fft || j.data || j.levels || j.bars || j.magnitudes || [];
         } catch (_) { return []; }
       }
-      // Comma/space separated numbers.
       return s.split(/[,\s]+/).map(Number).filter((x) => !isNaN(x));
     }
     return [];
   }
-
   function connectAudio() {
-    if (!AUDIO_URL) return;
     let aws;
     try { aws = new WebSocket(AUDIO_URL); } catch (e) { setTimeout(connectAudio, 3000); return; }
     aws.binaryType = "arraybuffer";
     aws.onmessage = (ev) => {
       const arr = parseAudio(ev.data);
       if (!arr.length) return;
-      // Auto-detect range: byte data (0..255) vs normalized (0..1).
       const max = Math.max.apply(null, arr);
       const norm = max > 2 ? arr.map((v) => v / 255) : arr;
       audioBands = resample(norm, BARS);
+      liveMode = "bands";
       lastAudioMsg = performance.now();
     };
     aws.onclose = () => setTimeout(connectAudio, 3000);
     aws.onerror = () => { try { aws.close(); } catch (_) {} };
   }
-  connectAudio();
 
+  if (USE_OBS) connectOBS();
+  if (AUDIO_URL) connectAudio();
+
+  // ---- Canvas drawing ------------------------------------------------------
   function sizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth || 300;
@@ -191,46 +255,6 @@ function start() {
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function drawViz(now) {
-    const w = canvas.clientWidth || 300;
-    const h = canvas.clientHeight || 46;
-    ctx.clearRect(0, 0, w, h);
-
-    const audioFresh = AUDIO_URL && audioBands.length && (performance.now() - lastAudioMsg < 500);
-
-    if (audioFresh) {
-      // Live audio drives the targets directly (responsive).
-      for (let i = 0; i < BARS; i++) {
-        targets[i] = Math.min(1, (audioBands[i] || 0) * AUDIO_GAIN);
-      }
-    } else if (now - lastTargetUpdate > 110) {
-      // Fallback: animated equalizer (no live audio).
-      lastTargetUpdate = now;
-      for (let i = 0; i < BARS; i++) {
-        if (state.isPlaying) {
-          const center = 1 - Math.abs(i - BARS / 2) / (BARS / 2);
-          targets[i] = 0.15 + Math.random() * (0.5 + center * 0.5);
-        } else {
-          targets[i] = 0.06;
-        }
-      }
-    }
-
-    const ease = audioFresh ? 0.4 : 0.18;
-    const gap = 2;
-    const barW = (w - gap * (BARS - 1)) / BARS;
-    ctx.fillStyle = VIZ_COLOR;
-    for (let i = 0; i < BARS; i++) {
-      levels[i] += (targets[i] - levels[i]) * ease;
-      const bh = Math.max(2, levels[i] * h);
-      const x = i * (barW + gap);
-      const y = h - bh;
-      const r = Math.min(barW / 2, 2);
-      roundRect(ctx, x, y, barW, bh, r);
-    }
-    requestAnimationFrame(drawViz);
   }
 
   function roundRect(c, x, y, w, h, r) {
@@ -244,16 +268,54 @@ function start() {
     c.fill();
   }
 
+  function drawViz(now) {
+    const w = canvas.clientWidth || 300;
+    const h = canvas.clientHeight || 46;
+    ctx.clearRect(0, 0, w, h);
+
+    const fresh = lastAudioMsg && (performance.now() - lastAudioMsg < 600);
+
+    if (fresh && liveMode === "bands" && audioBands.length) {
+      for (let i = 0; i < BARS; i++) targets[i] = Math.min(1, (audioBands[i] || 0) * AUDIO_GAIN);
+    } else if (fresh && liveMode === "level") {
+      if (now - lastShapeUpdate > 90) { lastShapeUpdate = now; updateShape(); }
+      const L = Math.min(1, Math.pow(liveLevel, 0.6) * AUDIO_GAIN);
+      for (let i = 0; i < BARS; i++) targets[i] = Math.max(0.04, L * shape[i]);
+    } else if (now - lastShapeUpdate > 110) {
+      // Fallback animated equalizer.
+      lastShapeUpdate = now;
+      for (let i = 0; i < BARS; i++) {
+        if (state.isPlaying) {
+          const center = 1 - Math.abs(i - BARS / 2) / (BARS / 2);
+          targets[i] = 0.15 + Math.random() * (0.5 + center * 0.5);
+        } else {
+          targets[i] = 0.06;
+        }
+      }
+    }
+
+    const ease = fresh ? 0.45 : 0.18;
+    const gap = 2;
+    const barW = (w - gap * (BARS - 1)) / BARS;
+    ctx.fillStyle = VIZ_COLOR;
+    for (let i = 0; i < BARS; i++) {
+      levels[i] += (targets[i] - levels[i]) * ease;
+      const bh = Math.max(2, levels[i] * h);
+      const x = i * (barW + gap);
+      roundRect(ctx, x, h - bh, barW, bh, Math.min(barW / 2, 2));
+    }
+    requestAnimationFrame(drawViz);
+  }
+
   sizeCanvas();
   window.addEventListener("resize", sizeCanvas);
   requestAnimationFrame(drawViz);
 
-  // ---- Progress / time render ---------------------------------------------
+  // ---- Progress / time render ----------------------------------------------
   function render() {
     let pos = state.positionMs;
     if (state.isPlaying) pos += Date.now() - state.lastSyncWall;
     if (state.durationMs) pos = Math.min(pos, state.durationMs);
-
     const pct = state.durationMs ? (pos / state.durationMs) * 100 : 0;
     els.fill.style.width = pct + "%";
     els.knob.style.left = pct + "%";
@@ -264,7 +326,7 @@ function start() {
   }
   requestAnimationFrame(render);
 
-  // ---- Relay connection ----------------------------------------------------
+  // ---- Now-playing relay ---------------------------------------------------
   let ws = null;
   function connect() {
     try { ws = new WebSocket(SE_RELAY); }

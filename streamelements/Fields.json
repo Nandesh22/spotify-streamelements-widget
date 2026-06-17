@@ -13,13 +13,34 @@
 
   "audioWsUrl": {
     "type": "text",
-    "label": "Audio visualizer WebSocket (optional, e.g. ws://127.0.0.1:PORT). Leave blank for animated bars.",
+    "label": "Custom audio WebSocket (optional, advanced). Leave blank to use OBS.",
     "value": ""
+  },
+  "useObsAudio": {
+    "type": "dropdown",
+    "label": "Use OBS audio for visualizer (real, recommended)",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
+  },
+  "obsPort": {
+    "type": "text",
+    "label": "OBS WebSocket port (Tools > WebSocket Server Settings)",
+    "value": "4455"
+  },
+  "obsPassword": {
+    "type": "text",
+    "label": "OBS WebSocket password (blank if disabled)",
+    "value": ""
+  },
+  "obsSource": {
+    "type": "text",
+    "label": "OBS audio source name (e.g. Music). Blank = loudest source.",
+    "value": "Music"
   },
   "audioGain": {
     "type": "number",
     "label": "Audio sensitivity",
-    "value": 1.4,
+    "value": 1.6,
     "min": 0.2,
     "max": 5,
     "step": 0.1
