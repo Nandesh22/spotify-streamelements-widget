@@ -1,0 +1,43 @@
+* { box-sizing: border-box; }
+#card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 380px;
+  padding: 12px;
+  border-radius: 14px;
+  background: {{bgColor}};
+  font-family: "Montserrat", -apple-system, Segoe UI, Roboto, sans-serif;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#card.show { opacity: 1; transform: translateY(0); }
+#cover {
+  width: 64px; height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: #333;
+}
+#info { flex: 1 1 auto; min-width: 0; }
+#track {
+  color: {{textColor}};
+  font-size: 15px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#artist {
+  color: {{subColor}};
+  font-size: 12px; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#bar {
+  margin-top: 10px; height: 4px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15); overflow: hidden;
+}
+#fill { height: 100%; width: 0%; background: {{accentColor}}; transition: width 0.25s linear; }
+#times {
+  display: flex; justify-content: space-between;
+  color: {{subColor}}; font-size: 10px; margin-top: 4px;
+}

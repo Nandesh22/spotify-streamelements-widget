@@ -1,0 +1,12 @@
+{
+  "name": "spotify-se-relay",
+  "version": "1.0.0",
+  "description": "Tiny WebSocket relay between the Spotify Chrome extension and the StreamElements/OBS widget.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

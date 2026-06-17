@@ -1,0 +1,10 @@
+# One-click deploy config for Render (https://render.com - free tier).
+# Push this repo to GitHub, then on Render: New > Blueprint > pick your repo.
+services:
+  - type: web
+    name: spotify-se-relay
+    runtime: node
+    rootDir: relay
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start

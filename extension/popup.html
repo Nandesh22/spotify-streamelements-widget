@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+        width: 300px;
+        margin: 0;
+        padding: 16px;
+        background: #121212;
+        color: #fff;
+      }
+      h1 { font-size: 14px; margin: 0 0 6px; color: #1db954; }
+      p.lead { font-size: 11px; color: #b3b3b3; margin: 0 0 14px; }
+      .step {
+        background: #1c1c1c;
+        border: 1px solid #2a2a2a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+      }
+      .step h2 {
+        font-size: 12px;
+        margin: 0 0 6px;
+        color: #fff;
+      }
+      .num {
+        display: inline-block;
+        width: 18px; height: 18px;
+        line-height: 18px; text-align: center;
+        border-radius: 50%;
+        background: #1db954; color: #000;
+        font-size: 11px; font-weight: 700;
+        margin-right: 6px;
+      }
+      .ok { color: #1db954; }
+      .warn { color: #e0b341; }
+      code {
+        display: block;
+        background: #000;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        color: #9ee6b4;
+        word-break: break-all;
+        margin-top: 6px;
+      }
+      button {
+        width: 100%;
+        padding: 9px;
+        border: 0;
+        border-radius: 20px;
+        background: #1db954;
+        color: #000;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      .status { font-size: 11px; margin-top: 8px; min-height: 14px; }
+    </style>
+  </head>
+  <body>
+    <h1>Spotify Now Playing</h1>
+    <p class="lead">Set up once. Two steps.</p>
+
+    <div class="step">
+      <h2><span class="num">1</span>Open Spotify</h2>
+      <div id="spotifyStatus" class="status">Checking…</div>
+    </div>
+
+    <div class="step">
+      <h2><span class="num">2</span>Add to OBS</h2>
+      <div style="font-size:11px;color:#b3b3b3;">
+        Copy this link and add it as a <b>Browser Source</b> in OBS.
+      </div>
+      <code id="obsLink">…</code>
+      <button id="copy">Copy OBS link</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

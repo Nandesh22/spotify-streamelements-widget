@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Spotify -> StreamElements Now Playing",
+  "version": "1.0.0",
+  "description": "Reads the Spotify Web Player and streams now-playing data to a StreamElements / OBS music widget.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://open.spotify.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Spotify Now Playing Settings"
+  }
+}

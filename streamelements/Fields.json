@@ -1,0 +1,38 @@
+{
+  "relayUrl": {
+    "type": "text",
+    "label": "Relay URL (must match the extension)",
+    "value": "ws://localhost:8787"
+  },
+  "channel": {
+    "type": "text",
+    "label": "Channel ID (must match the extension)",
+    "value": "your-unique-name"
+  },
+  "hideWhenPaused": {
+    "type": "dropdown",
+    "label": "Hide widget when paused",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
+  },
+  "bgColor": {
+    "type": "colorpicker",
+    "label": "Background color",
+    "value": "rgba(18,18,18,0.85)"
+  },
+  "textColor": {
+    "type": "colorpicker",
+    "label": "Title color",
+    "value": "#ffffff"
+  },
+  "subColor": {
+    "type": "colorpicker",
+    "label": "Artist / time color",
+    "value": "#b3b3b3"
+  },
+  "accentColor": {
+    "type": "colorpicker",
+    "label": "Progress bar color",
+    "value": "#1db954"
+  }
+}
