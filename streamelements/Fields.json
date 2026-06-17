@@ -6,33 +6,38 @@
   },
   "channel": {
     "type": "text",
-    "label": "Channel ID (must match the extension)",
-    "value": "your-unique-name"
+    "label": "Channel ID (copy from the extension popup)",
+    "value": "your-channel-id"
   },
   "hideWhenPaused": {
     "type": "dropdown",
     "label": "Hide widget when paused",
-    "value": "yes",
+    "value": "no",
     "options": { "yes": "Yes", "no": "No" }
   },
-  "bgColor": {
+  "panelColor": {
     "type": "colorpicker",
-    "label": "Background color",
-    "value": "rgba(18,18,18,0.85)"
-  },
-  "textColor": {
-    "type": "colorpicker",
-    "label": "Title color",
-    "value": "#ffffff"
-  },
-  "subColor": {
-    "type": "colorpicker",
-    "label": "Artist / time color",
-    "value": "#b3b3b3"
+    "label": "Card / panel background",
+    "value": "#f7f7f7"
   },
   "accentColor": {
     "type": "colorpicker",
-    "label": "Progress bar color",
-    "value": "#1db954"
+    "label": "Play button & progress color",
+    "value": "#7c5cff"
+  },
+  "titleColor": {
+    "type": "colorpicker",
+    "label": "Song title color",
+    "value": "#5a5a5a"
+  },
+  "subColor": {
+    "type": "colorpicker",
+    "label": "Artist color",
+    "value": "#a9a9a9"
+  },
+  "iconColor": {
+    "type": "colorpicker",
+    "label": "Icons & time color",
+    "value": "#c2c2c2"
   }
 }
