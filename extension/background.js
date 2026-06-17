@@ -45,6 +45,7 @@ function connect() {
     }
 
     socket.onopen = () => {
+      console.log("[SpotifyNP-bg] connected to relay, channel:", channel);
       socket.send(JSON.stringify({ role: "publisher", channel }));
       // Re-send last known state so a freshly connected widget gets it.
       if (lastPayload) {
@@ -52,8 +53,12 @@ function connect() {
       }
     };
 
-    socket.onclose = () => scheduleReconnect();
-    socket.onerror = () => {
+    socket.onclose = () => {
+      console.log("[SpotifyNP-bg] relay disconnected, retrying in 3s");
+      scheduleReconnect();
+    };
+    socket.onerror = (e) => {
+      console.log("[SpotifyNP-bg] relay error", e);
       try { socket.close(); } catch (_) {}
     };
   });

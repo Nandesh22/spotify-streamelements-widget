@@ -14,6 +14,23 @@
   const CHANNEL = params.get("channel") || cfg.channel || "default";
   const HIDE_WHEN_PAUSED =
     params.get("hidePaused") === "0" ? false : cfg.hideWhenPaused !== false;
+  const DEBUG = params.get("debug") === "1";
+
+  // Optional on-screen status box for setup/debugging (?debug=1).
+  let statusBox = null;
+  if (DEBUG) {
+    statusBox = document.createElement("div");
+    statusBox.style.cssText =
+      "position:fixed;top:6px;left:6px;font:12px monospace;color:#fff;" +
+      "background:rgba(0,0,0,.8);padding:6px 8px;border-radius:6px;z-index:9999;max-width:360px;";
+    statusBox.textContent = "starting…";
+    document.body.appendChild(statusBox);
+  }
+  const setStatus = (msg) => {
+    console.log("[SpotifyNP-widget]", msg);
+    if (statusBox) statusBox.textContent = msg;
+  };
+  setStatus("relay=" + RELAY + " channel=" + CHANNEL);
 
   const els = {
     card: document.getElementById("card"),
@@ -93,6 +110,7 @@
     }
 
     ws.onopen = () => {
+      setStatus("connected to relay — waiting for Spotify data…");
       ws.send(JSON.stringify({ role: "subscriber", channel: CHANNEL }));
     };
     ws.onmessage = (ev) => {
@@ -102,10 +120,17 @@
       } catch (_) {
         return;
       }
-      if (msg.type === "nowplaying" && msg.data) applyData(msg.data);
+      if (msg.type === "nowplaying" && msg.data) {
+        setStatus("receiving: " + msg.data.track + " — " + msg.data.artist);
+        applyData(msg.data);
+      }
     };
-    ws.onclose = () => setTimeout(connect, 3000);
+    ws.onclose = () => {
+      setStatus("relay disconnected — retrying in 3s…");
+      setTimeout(connect, 3000);
+    };
     ws.onerror = () => {
+      setStatus("relay connection error (check the URL / SSL)");
       try { ws.close(); } catch (_) {}
     };
   }
