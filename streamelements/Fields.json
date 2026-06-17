@@ -11,6 +11,20 @@
     "value": "your-channel-id"
   },
 
+  "audioWsUrl": {
+    "type": "text",
+    "label": "Audio visualizer WebSocket (optional, e.g. ws://127.0.0.1:PORT). Leave blank for animated bars.",
+    "value": ""
+  },
+  "audioGain": {
+    "type": "number",
+    "label": "Audio sensitivity",
+    "value": 1.4,
+    "min": 0.2,
+    "max": 5,
+    "step": 0.1
+  },
+
   "font": {
     "type": "googleFont",
     "label": "Font",

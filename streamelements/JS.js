@@ -123,6 +123,67 @@ function start() {
   const targets = new Array(BARS).fill(0.1);
   let lastTargetUpdate = 0;
 
+  // ---- Real audio feed (optional) -----------------------------------------
+  // If an audio WebSocket is provided, use live FFT data for the bars.
+  const AUDIO_URL = FD.audioWsUrl || "";
+  const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.4;
+  let audioBands = [];   // resampled to BARS, normalized 0..1
+  let lastAudioMsg = 0;
+
+  // Resample an arbitrary-length array down/up to `n` bins by averaging.
+  function resample(src, n) {
+    if (!src || !src.length) return [];
+    if (src.length === n) return src.slice();
+    const out = new Array(n);
+    const ratio = src.length / n;
+    for (let i = 0; i < n; i++) {
+      const start = Math.floor(i * ratio);
+      const end = Math.max(start + 1, Math.floor((i + 1) * ratio));
+      let sum = 0, c = 0;
+      for (let j = start; j < end && j < src.length; j++) { sum += src[j]; c++; }
+      out[i] = c ? sum / c : 0;
+    }
+    return out;
+  }
+
+  // Turn an incoming message into a numeric array of band magnitudes.
+  function parseAudio(data) {
+    // Binary (e.g., AnalyserNode.getByteFrequencyData -> Uint8 0..255).
+    if (data instanceof ArrayBuffer) return Array.from(new Uint8Array(data));
+    if (typeof data === "string") {
+      const s = data.trim();
+      if (s[0] === "[" || s[0] === "{") {
+        try {
+          const j = JSON.parse(s);
+          if (Array.isArray(j)) return j;
+          return j.fft || j.data || j.levels || j.bars || j.magnitudes || [];
+        } catch (_) { return []; }
+      }
+      // Comma/space separated numbers.
+      return s.split(/[,\s]+/).map(Number).filter((x) => !isNaN(x));
+    }
+    return [];
+  }
+
+  function connectAudio() {
+    if (!AUDIO_URL) return;
+    let aws;
+    try { aws = new WebSocket(AUDIO_URL); } catch (e) { setTimeout(connectAudio, 3000); return; }
+    aws.binaryType = "arraybuffer";
+    aws.onmessage = (ev) => {
+      const arr = parseAudio(ev.data);
+      if (!arr.length) return;
+      // Auto-detect range: byte data (0..255) vs normalized (0..1).
+      const max = Math.max.apply(null, arr);
+      const norm = max > 2 ? arr.map((v) => v / 255) : arr;
+      audioBands = resample(norm, BARS);
+      lastAudioMsg = performance.now();
+    };
+    aws.onclose = () => setTimeout(connectAudio, 3000);
+    aws.onerror = () => { try { aws.close(); } catch (_) {} };
+  }
+  connectAudio();
+
   function sizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth || 300;
@@ -137,12 +198,18 @@ function start() {
     const h = canvas.clientHeight || 46;
     ctx.clearRect(0, 0, w, h);
 
-    // Update targets a few times a second to look like audio.
-    if (now - lastTargetUpdate > 110) {
+    const audioFresh = AUDIO_URL && audioBands.length && (performance.now() - lastAudioMsg < 500);
+
+    if (audioFresh) {
+      // Live audio drives the targets directly (responsive).
+      for (let i = 0; i < BARS; i++) {
+        targets[i] = Math.min(1, (audioBands[i] || 0) * AUDIO_GAIN);
+      }
+    } else if (now - lastTargetUpdate > 110) {
+      // Fallback: animated equalizer (no live audio).
       lastTargetUpdate = now;
       for (let i = 0; i < BARS; i++) {
         if (state.isPlaying) {
-          // Center bars taller, with randomness — a believable spectrum.
           const center = 1 - Math.abs(i - BARS / 2) / (BARS / 2);
           targets[i] = 0.15 + Math.random() * (0.5 + center * 0.5);
         } else {
@@ -151,11 +218,12 @@ function start() {
       }
     }
 
+    const ease = audioFresh ? 0.4 : 0.18;
     const gap = 2;
     const barW = (w - gap * (BARS - 1)) / BARS;
     ctx.fillStyle = VIZ_COLOR;
     for (let i = 0; i < BARS; i++) {
-      levels[i] += (targets[i] - levels[i]) * 0.18; // smooth easing
+      levels[i] += (targets[i] - levels[i]) * ease;
       const bh = Math.max(2, levels[i] * h);
       const x = i * (barW + gap);
       const y = h - bh;
