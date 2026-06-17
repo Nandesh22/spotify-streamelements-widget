@@ -116,7 +116,10 @@ function start() {
     state.lastSyncWall = Date.now();
     if (d.cover !== state.cover) {
       state.cover = d.cover;
-      if (d.cover) els.cover.src = d.cover;
+      if (d.cover) {
+        els.cover.src = d.cover;
+        if (AUTO_COLOR) sampleColors(d.cover);
+      }
     }
     if (d.source !== state.source) {
       state.source = d.source;
@@ -134,8 +137,42 @@ function start() {
   const canvas = document.getElementById("viz");
   const ctx = canvas.getContext("2d");
   const BARS = Math.max(8, Math.min(96, parseInt(FD.visualizerBars, 10) || 48));
-  const VIZ_COLOR = FD.visualizerColor || "#e7b54a";
+  let vizColor = FD.visualizerColor || "#e7b54a";
   const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.6;
+  const AUTO_COLOR = FD.autoColor === "yes";
+
+  // Pull the dominant/vibrant color from the album art and recolor the widget.
+  function sampleColors(url) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      try {
+        const n = 24, c = document.createElement("canvas");
+        c.width = n; c.height = n;
+        const cx = c.getContext("2d");
+        cx.drawImage(img, 0, 0, n, n);
+        const data = cx.getImageData(0, 0, n, n).data;
+        let best = { score: -1, r: 231, g: 181, b: 74 };
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+          if (a < 128) continue;
+          const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+          const sat = mx === 0 ? 0 : (mx - mn) / mx;
+          const bright = mx / 255;
+          const score = sat * 0.75 + bright * 0.25;
+          if (bright > 0.18 && bright < 0.97 && score > best.score) best = { score, r, g, b };
+        }
+        const accent = "rgb(" + best.r + "," + best.g + "," + best.b + ")";
+        setVar("--accent", accent);
+        setVar("--border", accent);
+        setVar("--glow", "rgba(" + best.r + "," + best.g + "," + best.b + ",0.55)");
+        vizColor = accent;
+      } catch (e) {
+        /* Album CDN didn't allow cross-origin reads; keep configured colors. */
+      }
+    };
+    img.src = url;
+  }
 
   const levels = new Array(BARS).fill(0.06);
   const targets = new Array(BARS).fill(0.06);
@@ -297,7 +334,7 @@ function start() {
     const ease = fresh ? 0.45 : 0.18;
     const gap = 2;
     const barW = (w - gap * (BARS - 1)) / BARS;
-    ctx.fillStyle = VIZ_COLOR;
+    ctx.fillStyle = vizColor;
     for (let i = 0; i < BARS; i++) {
       levels[i] += (targets[i] - levels[i]) * ease;
       const bh = Math.max(2, levels[i] * h);
