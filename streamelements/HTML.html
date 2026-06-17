@@ -1,22 +1,30 @@
 <div id="card">
   <div id="art">
     <img id="cover" alt="" />
-    <div id="bar"><div id="fill"></div></div>
-    <div id="playbtn">
-      <svg id="iconPlay" viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
-      <svg id="iconPause" viewBox="0 0 24 24" width="22" height="22" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="#fff"/></svg>
+    <div id="vizwrap">
+      <canvas id="viz"></canvas>
+      <div id="totalBadge">0:00</div>
     </div>
   </div>
 
   <div id="panel">
-    <div id="toprow">
-      <div class="icons">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" fill="currentColor"/></svg>
-        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 21s-6.7-4.4-9.3-8.5C1 9.6 2.2 6 5.5 6c2 0 3.2 1.2 4.5 3 1.3-1.8 2.5-3 4.5-3 3.3 0 4.5 3.6 2.8 6.5C18.7 16.6 12 21 12 21z" fill="currentColor"/></svg>
+    <div id="meta">
+      <div id="logo"></div>
+      <div id="metatext">
+        <div id="track">Waiting for music…</div>
+        <div id="artist"></div>
       </div>
-      <div id="time">-0:00</div>
     </div>
-    <div id="track">Waiting for music…</div>
-    <div id="artist"></div>
+
+    <div id="progress">
+      <span id="cur" class="t">0:00</span>
+      <div id="bar"><div id="fill"></div><div id="knob"></div></div>
+      <span id="dur" class="t">0:00</span>
+    </div>
+
+    <div id="playbtn">
+      <svg id="iconPlay" viewBox="0 0 24 24" width="26" height="26"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+      <svg id="iconPause" viewBox="0 0 24 24" width="26" height="26" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor"/></svg>
+    </div>
   </div>
 </div>

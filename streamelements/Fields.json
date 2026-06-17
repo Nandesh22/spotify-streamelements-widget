@@ -1,4 +1,5 @@
 {
+  "connectionGroup": { "type": "hidden", "value": "" },
   "relayUrl": {
     "type": "text",
     "label": "Relay URL (must match the extension)",
@@ -9,35 +10,71 @@
     "label": "Channel ID (copy from the extension popup)",
     "value": "your-channel-id"
   },
+
+  "font": {
+    "type": "googleFont",
+    "label": "Font",
+    "value": "Montserrat"
+  },
+
   "hideWhenPaused": {
     "type": "dropdown",
     "label": "Hide widget when paused",
     "value": "no",
     "options": { "yes": "Yes", "no": "No" }
   },
-  "panelColor": {
-    "type": "colorpicker",
-    "label": "Card / panel background",
-    "value": "#f7f7f7"
+  "showVisualizer": {
+    "type": "dropdown",
+    "label": "Show visualizer",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
   },
-  "accentColor": {
-    "type": "colorpicker",
-    "label": "Play button & progress color",
-    "value": "#7c5cff"
+  "showProgress": {
+    "type": "dropdown",
+    "label": "Show progress bar",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
   },
-  "titleColor": {
-    "type": "colorpicker",
-    "label": "Song title color",
-    "value": "#5a5a5a"
+  "showTimes": {
+    "type": "dropdown",
+    "label": "Show elapsed / total times",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
   },
-  "subColor": {
-    "type": "colorpicker",
-    "label": "Artist color",
-    "value": "#a9a9a9"
+  "showTotalBadge": {
+    "type": "dropdown",
+    "label": "Show time badge over art",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
   },
-  "iconColor": {
-    "type": "colorpicker",
-    "label": "Icons & time color",
-    "value": "#c2c2c2"
-  }
+  "showLogo": {
+    "type": "dropdown",
+    "label": "Show service logo",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
+  },
+  "showPlayButton": {
+    "type": "dropdown",
+    "label": "Show play/pause button",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" }
+  },
+
+  "cardWidth": { "type": "number", "label": "Card width (px)", "value": 360, "min": 240, "max": 600, "step": 10 },
+  "albumHeight": { "type": "number", "label": "Album art height (px)", "value": 470, "min": 200, "max": 700, "step": 10 },
+  "cornerRadius": { "type": "number", "label": "Corner radius (px)", "value": 28, "min": 0, "max": 60, "step": 1 },
+  "titleSize": { "type": "number", "label": "Title size (px)", "value": 21, "min": 12, "max": 40, "step": 1 },
+  "artistSize": { "type": "number", "label": "Artist size (px)", "value": 15, "min": 10, "max": 30, "step": 1 },
+  "visualizerBars": { "type": "number", "label": "Visualizer bar count", "value": 48, "min": 8, "max": 96, "step": 1 },
+
+  "cardBg": { "type": "colorpicker", "label": "Card background", "value": "#1a1714" },
+  "panelBg": { "type": "colorpicker", "label": "Bottom panel background", "value": "#2a2724" },
+  "borderColor": { "type": "colorpicker", "label": "Border color", "value": "#d9a441" },
+  "glowColor": { "type": "colorpicker", "label": "Glow color", "value": "rgba(217,164,65,0.55)" },
+  "accentColor": { "type": "colorpicker", "label": "Play button color", "value": "#e7b54a" },
+  "visualizerColor": { "type": "colorpicker", "label": "Visualizer color", "value": "#e7b54a" },
+  "titleColor": { "type": "colorpicker", "label": "Title color", "value": "#ffffff" },
+  "artistColor": { "type": "colorpicker", "label": "Artist color", "value": "#b9b3ab" },
+  "timeColor": { "type": "colorpicker", "label": "Time text color", "value": "#d7d2ca" },
+  "progressTrackColor": { "type": "colorpicker", "label": "Progress track color", "value": "rgba(255,255,255,0.25)" }
 }

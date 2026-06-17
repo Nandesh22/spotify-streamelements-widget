@@ -1,12 +1,30 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 #card {
-  width: 320px;
-  border-radius: 22px;
-  overflow: hidden;
-  background: {{panelColor}};
+  /* All values below are overridden from the Fields via JS CSS variables. */
+  --width: 360px;
+  --radius: 28px;
+  --artHeight: 470px;
+  --cardBg: #1a1714;
+  --panelBg: #2a2724;
+  --border: #d9a441;
+  --glow: rgba(217, 164, 65, 0.55);
+  --accent: #e7b54a;
+  --track: #ffffff;
+  --sub: #b9b3ab;
+  --time: #d7d2ca;
+  --progressTrack: rgba(255, 255, 255, 0.25);
+  --titleSize: 21px;
+  --artistSize: 15px;
+
+  position: relative;
+  width: var(--width);
+  border-radius: var(--radius);
+  background: var(--cardBg);
+  padding: 10px;
+  border: 2px solid var(--border);
+  box-shadow: 0 0 22px var(--glow), 0 18px 50px rgba(0, 0, 0, 0.5);
   font-family: "Montserrat", -apple-system, Segoe UI, Roboto, sans-serif;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.45s ease, transform 0.45s ease;
@@ -17,81 +35,102 @@
 #art {
   position: relative;
   width: 100%;
-  height: 320px;
-  background: #ddd;
-}
-#cover {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Progress bar sits on the divider line */
-#bar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 3px;
-  background: rgba(0, 0, 0, 0.12);
-}
-#fill {
-  height: 100%;
-  width: 0%;
-  background: {{accentColor}};
-  transition: width 0.25s linear;
-}
-
-/* Play/pause button straddling the boundary */
-#playbtn {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translate(-50%, 50%);
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: {{accentColor}};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  z-index: 2;
-}
-
-/* Info panel */
-#panel {
-  padding: 34px 20px 22px;
-  text-align: center;
-}
-#toprow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: {{iconColor}};
-  margin-top: -8px;
-  margin-bottom: 10px;
-}
-.icons { display: flex; gap: 12px; align-items: center; }
-#time {
-  font-size: 13px;
-  color: {{iconColor}};
-  font-variant-numeric: tabular-nums;
-}
-#track {
-  font-size: 22px;
-  font-weight: 600;
-  color: {{titleColor}};
-  white-space: nowrap;
+  height: var(--artHeight);
+  border-radius: calc(var(--radius) - 8px);
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: #000;
+}
+#cover { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Visualizer sits over the bottom of the art */
+#vizwrap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 70px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 14px 12px;
+  gap: 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.45), rgba(0,0,0,0));
+}
+#viz { flex: 1 1 auto; height: 46px; width: 100%; display: block; }
+#totalBadge {
+  flex: 0 0 auto;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  backdrop-filter: blur(4px);
+}
+
+/* Bottom panel */
+#panel {
+  position: relative;
+  margin-top: 10px;
+  background: var(--panelBg);
+  border-radius: calc(var(--radius) - 6px);
+  padding: 16px 18px 30px;
+}
+
+#meta { display: flex; align-items: center; gap: 14px; }
+#logo { flex: 0 0 auto; width: 40px; height: 40px; }
+#logo svg { width: 100%; height: 100%; display: block; }
+#metatext { min-width: 0; flex: 1 1 auto; }
+#track {
+  color: var(--track);
+  font-size: var(--titleSize);
+  font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #artist {
-  font-size: 16px;
-  color: {{subColor}};
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--sub);
+  font-size: var(--artistSize);
+  margin-top: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Progress */
+#progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+#progress .t { color: var(--time); font-size: 12px; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+#bar {
+  position: relative;
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--progressTrack);
+}
+#fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  background: #fff;
+}
+#knob {
+  position: absolute; top: 50%;
+  left: 0%;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Play/pause button */
+#playbtn {
+  position: absolute;
+  left: 50%; bottom: 0;
+  transform: translate(-50%, 50%);
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #f6d68a, var(--accent));
+  color: #2a2010;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 18px var(--glow), 0 8px 20px rgba(0,0,0,0.45);
+  z-index: 3;
 }
