@@ -124,6 +124,15 @@
     if (!data) {
       if (!warnedOnce) {
         log("No track found yet. Make sure a song is playing in this tab.");
+        // Dump diagnostics so we can fix selectors precisely.
+        log("DIAG document.title =", JSON.stringify(document.title));
+        log("DIAG now-playing-widget?", !!document.querySelector('[data-testid="now-playing-widget"]'));
+        log("DIAG context-item-link?", !!document.querySelector('[data-testid="context-item-link"]'));
+        log("DIAG footer?", !!document.querySelector("footer"));
+        log("DIAG artist links:", document.querySelectorAll('a[href*="/artist/"]').length);
+        log("DIAG track links:", document.querySelectorAll('a[href*="/track/"]').length);
+        const fb = document.querySelector("footer");
+        if (fb) log("DIAG footer text:", fb.innerText.slice(0, 200));
         warnedOnce = true;
       }
       return;
