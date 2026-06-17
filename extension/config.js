@@ -1,10 +1,9 @@
 // config.js
-// EDIT THIS ONE LINE after you deploy your relay (see DEPLOY.md).
-// This is the address every customer's extension and widget will connect to.
-// While testing locally, leave it as the localhost value.
+// Production relay, hosted on Oracle Cloud + Coolify.
+// This is the address every customer's extension and widget connect to.
 
-const RELAY_URL = "ws://localhost:8787";
+const RELAY_URL = "wss://music.noblenestel.giize.com";
 
-// The public web address where you host the widget page (widget/widget.html).
-// Customers paste this (with their channel) into OBS. See DEPLOY.md.
-const WIDGET_BASE_URL = "http://localhost:5500/widget/widget.html";
+// The public web address where the widget page is served (the relay also
+// serves it). Customers paste this (with their channel) into OBS.
+const WIDGET_BASE_URL = "https://music.noblenestel.giize.com/widget";

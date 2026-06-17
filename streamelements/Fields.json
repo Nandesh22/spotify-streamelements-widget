@@ -2,7 +2,7 @@
   "relayUrl": {
     "type": "text",
     "label": "Relay URL (must match the extension)",
-    "value": "ws://localhost:8787"
+    "value": "wss://music.noblenestel.giize.com"
   },
   "channel": {
     "type": "text",
