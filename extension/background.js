@@ -30,6 +30,10 @@ chrome.runtime.onStartup.addListener(connect);
 
 function connect() {
   clearTimeout(reconnectTimer);
+  // Don't open a second socket if one is already connecting/open.
+  if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+    return;
+  }
   ensureConfig().then(({ channel }) => {
     if (!RELAY_URL || !channel) return;
     try {
@@ -43,7 +47,17 @@ function connect() {
     socket.onopen = () => {
       console.log("[MusicNP-bg] connected, channel:", channel);
       socket.send(JSON.stringify({ role: "publisher", channel }));
-      publishActive(); // push current state to any waiting widget
+      // Re-publish the last known track so a waiting widget fills in instantly,
+      // even if the worker restarted and lost its in-memory tab states.
+      if (chooseActive()) {
+        publishActive();
+      } else {
+        chrome.storage.local.get({ lastPayload: null }).then(({ lastPayload }) => {
+          if (lastPayload && socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "nowplaying", channel: currentChannel, data: lastPayload }));
+          }
+        });
+      }
     };
     socket.onclose = () => { console.log("[MusicNP-bg] disconnected"); scheduleReconnect(); };
     socket.onerror = (e) => { console.log("[MusicNP-bg] error", e); try { socket.close(); } catch (_) {} };
@@ -70,8 +84,13 @@ function chooseActive() {
 
 function publishActive() {
   const active = chooseActive();
-  if (active && socket && socket.readyState === WebSocket.OPEN && currentChannel) {
+  if (!active) return;
+  // Persist so a restarted worker can restore the last track immediately.
+  chrome.storage.local.set({ lastPayload: active.data });
+  if (socket && socket.readyState === WebSocket.OPEN && currentChannel) {
     socket.send(JSON.stringify({ type: "nowplaying", channel: currentChannel, data: active.data }));
+  } else {
+    connect();
   }
 }
 
@@ -85,6 +104,15 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 
 // Forget a tab when it closes so it can't keep "owning" the widget.
 chrome.tabs.onRemoved.addListener((tabId) => tabStates.delete(tabId));
+
+// Keep-alive: MV3 workers sleep and drop the socket. A periodic alarm wakes the
+// worker, ensures the relay is connected, and re-pushes the latest track.
+chrome.alarms.create("keepalive", { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name !== "keepalive") return;
+  if (!socket || socket.readyState > WebSocket.OPEN) connect();
+  else publishActive();
+});
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.channel) {

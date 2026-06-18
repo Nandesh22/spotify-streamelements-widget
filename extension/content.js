@@ -9,7 +9,6 @@
   log("bridge loaded on", location.hostname);
 
   let lastSig = "";
-  let beat = 0;
 
   window.addEventListener("message", function (ev) {
     if (ev.source !== window) return;
@@ -18,13 +17,12 @@
 
     const d = m.data;
     const sig = [d.source, d.track, d.artist, d.isPlaying, d.durationMs].join("|");
-    const changed = sig !== lastSig;
-
-    // Send on change, plus a heartbeat every ~5s to resync position.
-    if (changed || beat++ % 5 === 0) {
+    if (sig !== lastSig) {
       lastSig = sig;
-      if (changed) log("sending", d.source, "-", d.track, "-", d.artist, "playing:", d.isPlaying);
-      chrome.runtime.sendMessage({ type: "nowplaying", data: d }).catch(() => {});
+      log("now playing:", d.source, "-", d.track, "-", d.artist, "playing:", d.isPlaying, "dur:", d.durationMs);
     }
+    // Send every tick (~1/s) so the widget always has fresh data and recovers
+    // immediately if the background worker restarted.
+    chrome.runtime.sendMessage({ type: "nowplaying", data: d }).catch(() => {});
   });
 })();
