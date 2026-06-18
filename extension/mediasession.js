@@ -97,29 +97,42 @@
     const ms = navigator.mediaSession;
     const md = ms && ms.metadata;
     const media = findMedia();
+    const isSpotify = location.hostname.includes("spotify");
 
-    let track = md && md.title ? md.title : "";
-    let artist = md && md.artist ? md.artist : "";
-    let album = md && md.album ? md.album : "";
-    let cover = "";
-    if (md && md.artwork && md.artwork.length) {
-      cover = md.artwork[md.artwork.length - 1].src || md.artwork[0].src || "";
-    }
-    let durationMs = media && isFinite(media.duration) ? media.duration * 1000 : 0;
-    let positionMs = media ? media.currentTime * 1000 : 0;
-    let isPlaying = media ? !media.paused : !!(ms && ms.playbackState === "playing");
+    let track = "", artist = "", album = "", cover = "";
+    let durationMs = 0, positionMs = 0, isPlaying = false;
 
-    // Spotify fallback: fill anything mediaSession didn't provide.
-    if (location.hostname.includes("spotify") && (!track || !durationMs)) {
+    if (isSpotify) {
+      // Spotify's mediaSession lags by a track on fast skips, so the live
+      // now-playing bar in the DOM is the source of truth here.
       const dom = readSpotifyDOM();
       if (dom) {
-        if (!track) track = dom.track;
-        if (!artist) artist = dom.artist;
-        if (!cover) cover = dom.cover;
-        if (!durationMs) durationMs = dom.durationMs;
-        if (!positionMs) positionMs = dom.positionMs;
-        if (!media) isPlaying = dom.isPlaying;
+        track = dom.track;
+        artist = dom.artist;
+        cover = dom.cover;
+        durationMs = dom.durationMs;
+        positionMs = dom.positionMs;
+        isPlaying = dom.isPlaying;
       }
+      if (!cover && md && md.artwork && md.artwork.length) {
+        cover = md.artwork[md.artwork.length - 1].src || "";
+      }
+      // Only fall back to mediaSession if the DOM gave us nothing at all.
+      if (!track && md && md.title) {
+        track = md.title;
+        artist = md.artist || "";
+      }
+    } else {
+      // YouTube Music / Apple Music: mediaSession is accurate and timely.
+      track = md && md.title ? md.title : "";
+      artist = md && md.artist ? md.artist : "";
+      album = md && md.album ? md.album : "";
+      if (md && md.artwork && md.artwork.length) {
+        cover = md.artwork[md.artwork.length - 1].src || md.artwork[0].src || "";
+      }
+      durationMs = media && isFinite(media.duration) ? media.duration * 1000 : 0;
+      positionMs = media ? media.currentTime * 1000 : 0;
+      isPlaying = media ? !media.paused : !!(ms && ms.playbackState === "playing");
     }
 
     if (!track) return null;
@@ -142,5 +155,5 @@
     let data;
     try { data = read(); } catch (e) { return; }
     if (data) window.postMessage({ __musicnp: true, data: data }, "*");
-  }, 1000);
+  }, 600);
 })();
