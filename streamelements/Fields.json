@@ -70,16 +70,16 @@
     "value": 48, "min": 8, "max": 96, "step": 1,
     "group": "Visualizer"
   },
-  "vizGradient": {
+  "vizColorMode": {
     "type": "dropdown",
-    "label": "Gradient fill (uses album colors when auto-color is on)",
-    "value": "yes",
-    "options": { "yes": "Yes", "no": "No" },
+    "label": "Visualizer color mode",
+    "value": "album",
+    "options": { "album": "Album colors (gradient)", "solid": "Solid color", "gradient": "Custom gradient" },
     "group": "Visualizer"
   },
   "visualizerColor": {
     "type": "colorpicker",
-    "label": "Visualizer color 1",
+    "label": "Visualizer color (solid / gradient bottom)",
     "value": "#e7b54a",
     "group": "Visualizer"
   },
@@ -94,6 +94,20 @@
     "type": "slider",
     "label": "Overall widget size (%)",
     "value": 100, "min": 40, "max": 150, "step": 5,
+    "group": "Layout & Size"
+  },
+  "align": {
+    "type": "dropdown",
+    "label": "Horizontal alignment",
+    "value": "left",
+    "options": { "left": "Left", "center": "Center", "right": "Right" },
+    "group": "Layout & Size"
+  },
+  "valign": {
+    "type": "dropdown",
+    "label": "Vertical alignment",
+    "value": "top",
+    "options": { "top": "Top", "middle": "Middle", "bottom": "Bottom" },
     "group": "Layout & Size"
   },
   "cardWidth": {

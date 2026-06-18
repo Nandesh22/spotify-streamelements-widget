@@ -42,6 +42,13 @@ function applyStyles() {
   if (FD.font) card.style.fontFamily = '"' + FD.font + '", sans-serif';
   const scale = (parseInt(FD.widgetScale, 10) || 100) / 100;
   card.style.setProperty("--scale", String(scale));
+
+  // Alignment within the OBS source (also keeps the glow from being clipped).
+  const alignH = { left: "flex-start", center: "center", right: "flex-end" };
+  const alignV = { top: "flex-start", middle: "center", bottom: "flex-end" };
+  document.body.style.setProperty("--alignH", alignH[FD.align] || "flex-start");
+  document.body.style.setProperty("--alignV", alignV[FD.valign] || "flex-start");
+
   setVar("--width", (FD.cardWidth || 360) + "px");
   setVar("--radius", (FD.cornerRadius || 28) + "px");
   setVar("--artHeight", (FD.albumHeight || 470) + "px");
@@ -139,7 +146,7 @@ function start() {
         state.cover = d.cover;
         if (d.cover) {
           els.cover.src = d.cover;
-          if (AUTO_COLOR || PANEL_GLASS) sampleColors(d.cover);
+          if (AUTO_COLOR || PANEL_GLASS || VIZ_MODE === "album") sampleColors(d.cover);
         } else {
           els.cover.removeAttribute("src");
         }
@@ -172,7 +179,8 @@ function start() {
   const AUTO_COLOR = FD.autoColor === "yes";
   const PANEL_GLASS = FD.panelGlass === "yes";
   const VIZ_STYLE = FD.visualizerStyle || "bars";
-  const VIZ_GRADIENT = FD.vizGradient === "yes";
+  const VIZ_MODE = FD.vizColorMode || "album"; // album | solid | gradient
+  const VIZ_GRADIENT = VIZ_MODE !== "solid";
   let vizA = FD.visualizerColor || "#e7b54a";
   let vizB = FD.visualizerColor2 || "#ffffff";
   let gradCache = null, gradCacheH = -1;
@@ -224,8 +232,8 @@ function start() {
           setVar("--border", accent);
           setVar("--glow", "rgba(" + best.r + "," + best.g + "," + best.b + ",0.55)");
         }
-        // Album-tinted visualizer (solid or gradient).
-        if (AUTO_COLOR || VIZ_GRADIENT) {
+        // Album-tinted visualizer only when the color mode is "album".
+        if (VIZ_MODE === "album") {
           vizA = accent;
           vizB = lightenRGB(best.r, best.g, best.b, 0.55);
           gradCache = null;
