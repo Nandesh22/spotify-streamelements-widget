@@ -1,128 +1,202 @@
 {
-  "connectionGroup": { "type": "hidden", "value": "" },
   "relayUrl": {
     "type": "text",
     "label": "Relay URL (must match the extension)",
-    "value": "wss://music.noblenestel.giize.com"
+    "value": "wss://music.noblenestel.giize.com",
+    "group": "Connection"
   },
   "channel": {
     "type": "text",
     "label": "Channel ID (copy from the extension popup)",
-    "value": "your-channel-id"
+    "value": "your-channel-id",
+    "group": "Connection"
   },
 
-  "audioWsUrl": {
-    "type": "text",
-    "label": "Custom audio WebSocket (optional, advanced). Leave blank to use OBS.",
-    "value": ""
-  },
   "useObsAudio": {
     "type": "dropdown",
     "label": "Use OBS audio for visualizer (real, recommended)",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Audio Source"
   },
   "obsPort": {
     "type": "text",
-    "label": "OBS WebSocket port (Tools > WebSocket Server Settings)",
-    "value": "4455"
+    "label": "OBS WebSocket port",
+    "value": "4455",
+    "group": "Audio Source"
   },
   "obsPassword": {
     "type": "text",
     "label": "OBS WebSocket password (blank if disabled)",
-    "value": ""
+    "value": "",
+    "group": "Audio Source"
   },
   "obsSource": {
     "type": "text",
-    "label": "OBS audio source name (e.g. Music). Blank = loudest source.",
-    "value": "Music"
+    "label": "OBS audio source name (e.g. Music). Blank = loudest.",
+    "value": "Music",
+    "group": "Audio Source"
+  },
+  "audioWsUrl": {
+    "type": "text",
+    "label": "Custom audio WebSocket (advanced, optional)",
+    "value": "",
+    "group": "Audio Source"
   },
   "audioGain": {
     "type": "slider",
     "label": "Audio sensitivity",
-    "value": 1.6,
-    "min": 0.2,
-    "max": 5,
-    "step": 0.1
+    "value": 1.6, "min": 0.2, "max": 5, "step": 0.1,
+    "group": "Audio Source"
   },
 
+  "showVisualizer": {
+    "type": "dropdown",
+    "label": "Show visualizer",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Visualizer"
+  },
+  "visualizerStyle": {
+    "type": "dropdown",
+    "label": "Visualizer style",
+    "value": "bars",
+    "options": { "bars": "Bars", "mirror": "Mirror bars", "blocks": "Blocks (LED)", "wave": "Wave", "dots": "Dots" },
+    "group": "Visualizer"
+  },
+  "visualizerBars": {
+    "type": "slider",
+    "label": "Bar / point count",
+    "value": 48, "min": 8, "max": 96, "step": 1,
+    "group": "Visualizer"
+  },
+  "vizGradient": {
+    "type": "dropdown",
+    "label": "Gradient fill (uses album colors when auto-color is on)",
+    "value": "yes",
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Visualizer"
+  },
+  "visualizerColor": {
+    "type": "colorpicker",
+    "label": "Visualizer color 1",
+    "value": "#e7b54a",
+    "group": "Visualizer"
+  },
+  "visualizerColor2": {
+    "type": "colorpicker",
+    "label": "Visualizer color 2 (gradient top)",
+    "value": "#ffffff",
+    "group": "Visualizer"
+  },
+
+  "widgetScale": {
+    "type": "slider",
+    "label": "Overall widget size (%)",
+    "value": 100, "min": 40, "max": 150, "step": 5,
+    "group": "Layout & Size"
+  },
+  "cardWidth": {
+    "type": "slider",
+    "label": "Card width (px)",
+    "value": 360, "min": 240, "max": 600, "step": 5,
+    "group": "Layout & Size"
+  },
+  "albumHeight": {
+    "type": "slider",
+    "label": "Album art height (px)",
+    "value": 470, "min": 200, "max": 700, "step": 5,
+    "group": "Layout & Size"
+  },
+  "cornerRadius": {
+    "type": "slider",
+    "label": "Corner radius (px)",
+    "value": 28, "min": 0, "max": 60, "step": 1,
+    "group": "Layout & Size"
+  },
+  "titleSize": {
+    "type": "slider",
+    "label": "Title size (px)",
+    "value": 21, "min": 12, "max": 40, "step": 1,
+    "group": "Layout & Size"
+  },
+  "artistSize": {
+    "type": "slider",
+    "label": "Artist size (px)",
+    "value": 15, "min": 10, "max": 30, "step": 1,
+    "group": "Layout & Size"
+  },
   "font": {
     "type": "googleFont",
     "label": "Font",
-    "value": "Montserrat"
+    "value": "Montserrat",
+    "group": "Layout & Size"
   },
 
   "hideWhenPaused": {
     "type": "dropdown",
     "label": "Hide widget when paused",
     "value": "no",
-    "options": { "yes": "Yes", "no": "No" }
-  },
-  "showVisualizer": {
-    "type": "dropdown",
-    "label": "Show visualizer",
-    "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
   "showProgress": {
     "type": "dropdown",
     "label": "Show progress bar",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
   "showTimes": {
     "type": "dropdown",
     "label": "Show elapsed / total times",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
   "showTotalBadge": {
     "type": "dropdown",
     "label": "Show time badge over art",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
   "showLogo": {
     "type": "dropdown",
     "label": "Show service logo",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
   "showPlayButton": {
     "type": "dropdown",
     "label": "Show play/pause button",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Display Toggles"
   },
 
   "autoColor": {
     "type": "dropdown",
     "label": "Auto-color widget from album art",
     "value": "yes",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Colors"
   },
   "panelGlass": {
     "type": "dropdown",
     "label": "Glass panel tinted by album color",
     "value": "no",
-    "options": { "yes": "Yes", "no": "No" }
+    "options": { "yes": "Yes", "no": "No" },
+    "group": "Colors"
   },
-
-  "cardWidth": { "type": "slider", "label": "Card width (px)", "value": 360, "min": 240, "max": 600, "step": 5 },
-  "albumHeight": { "type": "slider", "label": "Album art height (px)", "value": 470, "min": 200, "max": 700, "step": 5 },
-  "cornerRadius": { "type": "slider", "label": "Corner radius (px)", "value": 28, "min": 0, "max": 60, "step": 1 },
-  "titleSize": { "type": "slider", "label": "Title size (px)", "value": 21, "min": 12, "max": 40, "step": 1 },
-  "artistSize": { "type": "slider", "label": "Artist size (px)", "value": 15, "min": 10, "max": 30, "step": 1 },
-  "visualizerBars": { "type": "slider", "label": "Visualizer bar count", "value": 48, "min": 8, "max": 96, "step": 1 },
-
-  "cardBg": { "type": "colorpicker", "label": "Card background", "value": "#1a1714" },
-  "panelBg": { "type": "colorpicker", "label": "Bottom panel background", "value": "#2a2724" },
-  "borderColor": { "type": "colorpicker", "label": "Border color", "value": "#d9a441" },
-  "glowColor": { "type": "colorpicker", "label": "Glow color", "value": "rgba(217,164,65,0.55)" },
-  "accentColor": { "type": "colorpicker", "label": "Play button color", "value": "#e7b54a" },
-  "visualizerColor": { "type": "colorpicker", "label": "Visualizer color", "value": "#e7b54a" },
-  "titleColor": { "type": "colorpicker", "label": "Title color", "value": "#ffffff" },
-  "artistColor": { "type": "colorpicker", "label": "Artist color", "value": "#b9b3ab" },
-  "timeColor": { "type": "colorpicker", "label": "Time text color", "value": "#d7d2ca" },
-  "progressTrackColor": { "type": "colorpicker", "label": "Progress track color", "value": "rgba(255,255,255,0.25)" }
+  "cardBg": { "type": "colorpicker", "label": "Card background", "value": "#1a1714", "group": "Colors" },
+  "panelBg": { "type": "colorpicker", "label": "Bottom panel background", "value": "#2a2724", "group": "Colors" },
+  "borderColor": { "type": "colorpicker", "label": "Border color", "value": "#d9a441", "group": "Colors" },
+  "glowColor": { "type": "colorpicker", "label": "Glow color", "value": "rgba(217,164,65,0.55)", "group": "Colors" },
+  "accentColor": { "type": "colorpicker", "label": "Play button color", "value": "#e7b54a", "group": "Colors" },
+  "titleColor": { "type": "colorpicker", "label": "Title color", "value": "#ffffff", "group": "Colors" },
+  "artistColor": { "type": "colorpicker", "label": "Artist color", "value": "#b9b3ab", "group": "Colors" },
+  "timeColor": { "type": "colorpicker", "label": "Time text color", "value": "#d7d2ca", "group": "Colors" },
+  "progressTrackColor": { "type": "colorpicker", "label": "Progress track color", "value": "rgba(255,255,255,0.25)", "group": "Colors" }
 }

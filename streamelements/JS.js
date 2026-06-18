@@ -40,6 +40,8 @@ function setVar(name, val) {
 function applyStyles() {
   const card = document.getElementById("card");
   if (FD.font) card.style.fontFamily = '"' + FD.font + '", sans-serif';
+  const scale = (parseInt(FD.widgetScale, 10) || 100) / 100;
+  card.style.setProperty("--scale", String(scale));
   setVar("--width", (FD.cardWidth || 360) + "px");
   setVar("--radius", (FD.cornerRadius || 28) + "px");
   setVar("--artHeight", (FD.albumHeight || 470) + "px");
@@ -166,10 +168,29 @@ function start() {
   const canvas = document.getElementById("viz");
   const ctx = canvas.getContext("2d");
   const BARS = Math.max(8, Math.min(96, parseInt(FD.visualizerBars, 10) || 48));
-  let vizColor = FD.visualizerColor || "#e7b54a";
   const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.6;
   const AUTO_COLOR = FD.autoColor === "yes";
   const PANEL_GLASS = FD.panelGlass === "yes";
+  const VIZ_STYLE = FD.visualizerStyle || "bars";
+  const VIZ_GRADIENT = FD.vizGradient === "yes";
+  let vizA = FD.visualizerColor || "#e7b54a";
+  let vizB = FD.visualizerColor2 || "#ffffff";
+  let gradCache = null, gradCacheH = -1;
+
+  function lightenRGB(r, g, b, amt) {
+    return "rgb(" + Math.round(r + (255 - r) * amt) + "," +
+      Math.round(g + (255 - g) * amt) + "," + Math.round(b + (255 - b) * amt) + ")";
+  }
+  function vizFill(h) {
+    if (!VIZ_GRADIENT) return vizA;
+    if (!gradCache || gradCacheH !== h) {
+      const g = ctx.createLinearGradient(0, h, 0, 0);
+      g.addColorStop(0, vizA);
+      g.addColorStop(1, vizB);
+      gradCache = g; gradCacheH = h;
+    }
+    return gradCache;
+  }
 
   // Pull the dominant/vibrant color from the album art and recolor the widget.
   function sampleColors(url) {
@@ -196,13 +217,18 @@ function start() {
         }
         if (!cnt) return;
         const avg = { r: Math.round(ar / cnt), g: Math.round(ag / cnt), b: Math.round(ab / cnt) };
+        const accent = "rgb(" + best.r + "," + best.g + "," + best.b + ")";
 
         if (AUTO_COLOR) {
-          const accent = "rgb(" + best.r + "," + best.g + "," + best.b + ")";
           setVar("--accent", accent);
           setVar("--border", accent);
           setVar("--glow", "rgba(" + best.r + "," + best.g + "," + best.b + ",0.55)");
-          vizColor = accent;
+        }
+        // Album-tinted visualizer (solid or gradient).
+        if (AUTO_COLOR || VIZ_GRADIENT) {
+          vizA = accent;
+          vizB = lightenRGB(best.r, best.g, best.b, 0.55);
+          gradCache = null;
         }
         if (PANEL_GLASS) {
           const g1 = "rgba(" + best.r + "," + best.g + "," + best.b + ",0.42)";
@@ -348,6 +374,58 @@ function start() {
     c.fill();
   }
 
+  // --- visualizer styles ---
+  function drawBars(w, h, gap) {
+    const barW = (w - gap * (BARS - 1)) / BARS;
+    for (let i = 0; i < BARS; i++) {
+      const bh = Math.max(2, levels[i] * h);
+      roundRect(ctx, i * (barW + gap), h - bh, barW, bh, Math.min(barW / 2, 2));
+    }
+  }
+  function drawMirror(w, h, gap) {
+    const barW = (w - gap * (BARS - 1)) / BARS;
+    const mid = h / 2;
+    for (let i = 0; i < BARS; i++) {
+      const bh = Math.max(2, levels[i] * h);
+      roundRect(ctx, i * (barW + gap), mid - bh / 2, barW, bh, Math.min(barW / 2, 2));
+    }
+  }
+  function drawBlocks(w, h, gap) {
+    const barW = (w - gap * (BARS - 1)) / BARS;
+    const cells = Math.max(3, Math.floor(h / 6));
+    const cellH = h / cells;
+    const ch = Math.max(2, cellH * 0.65);
+    for (let i = 0; i < BARS; i++) {
+      const lit = Math.round(levels[i] * cells);
+      for (let cI = 0; cI < lit; cI++) {
+        ctx.fillRect(i * (barW + gap), h - (cI + 1) * cellH, barW, ch);
+      }
+    }
+  }
+  function drawWave(w, h) {
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let i = 0; i < BARS; i++) {
+      const x = BARS > 1 ? (i / (BARS - 1)) * w : w / 2;
+      const y = h - Math.max(2, levels[i] * h);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function drawDots(w, h) {
+    const slot = w / BARS;
+    const r = Math.min(slot * 0.32, 4);
+    for (let i = 0; i < BARS; i++) {
+      const x = i * slot + slot / 2;
+      const y = h - Math.max(r, levels[i] * h);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawViz(now) {
     const w = canvas.clientWidth || 300;
     const h = canvas.clientHeight || 46;
@@ -362,7 +440,6 @@ function start() {
       const L = Math.min(1, Math.pow(liveLevel, 0.6) * AUDIO_GAIN);
       for (let i = 0; i < BARS; i++) targets[i] = Math.max(0.04, L * shape[i]);
     } else if (now - lastShapeUpdate > 110) {
-      // Fallback animated equalizer.
       lastShapeUpdate = now;
       for (let i = 0; i < BARS; i++) {
         if (state.isPlaying) {
@@ -375,15 +452,17 @@ function start() {
     }
 
     const ease = fresh ? 0.45 : 0.18;
+    for (let i = 0; i < BARS; i++) levels[i] += (targets[i] - levels[i]) * ease;
+
+    const fill = vizFill(h);
+    ctx.fillStyle = fill;
     const gap = 2;
-    const barW = (w - gap * (BARS - 1)) / BARS;
-    ctx.fillStyle = vizColor;
-    for (let i = 0; i < BARS; i++) {
-      levels[i] += (targets[i] - levels[i]) * ease;
-      const bh = Math.max(2, levels[i] * h);
-      const x = i * (barW + gap);
-      roundRect(ctx, x, h - bh, barW, bh, Math.min(barW / 2, 2));
-    }
+    if (VIZ_STYLE === "mirror") drawMirror(w, h, gap);
+    else if (VIZ_STYLE === "blocks") drawBlocks(w, h, gap);
+    else if (VIZ_STYLE === "wave") drawWave(w, h);
+    else if (VIZ_STYLE === "dots") drawDots(w, h);
+    else drawBars(w, h, gap);
+
     requestAnimationFrame(drawViz);
   }
 
