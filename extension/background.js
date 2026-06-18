@@ -1,26 +1,27 @@
 // background.js (MV3 service worker)
-// Connects to the fixed production relay (from config.js) and forwards
-// now-playing data from the content script on a per-user channel.
+// Connects to the fixed production relay and forwards now-playing data.
+// Arbitrates between multiple open music tabs: only the actively PLAYING
+// source is sent, so two open platforms don't fight over the widget.
 
 importScripts("config.js"); // provides RELAY_URL
 
 let socket = null;
 let reconnectTimer = null;
-let lastPayload = null;
+let currentChannel = "";
 
 const PLACEHOLDER_CHANNELS = ["", "your-unique-name", "default"];
 
-// Returns a valid, persisted channel. Generates one if missing/placeholder.
-// The relay URL is ALWAYS the config value — never read from storage — so
-// stale per-user data can't point customers at the wrong server.
+// tabId -> { data, isPlaying, ts }
+const tabStates = new Map();
+
 async function ensureConfig() {
   const cur = await chrome.storage.local.get({ channel: "" });
   let channel = cur.channel;
   if (PLACEHOLDER_CHANNELS.includes(channel)) {
     channel = "sp-" + Math.random().toString(36).slice(2, 10);
   }
-  // Pin storage to the correct values (self-heals old installs).
   await chrome.storage.local.set({ channel, relayUrl: RELAY_URL });
+  currentChannel = channel;
   return { channel, relayUrl: RELAY_URL };
 }
 
@@ -31,31 +32,21 @@ function connect() {
   clearTimeout(reconnectTimer);
   ensureConfig().then(({ channel }) => {
     if (!RELAY_URL || !channel) return;
-
     try {
       socket = new WebSocket(RELAY_URL);
     } catch (e) {
-      console.log("[SpotifyNP-bg] connect threw", e);
+      console.log("[MusicNP-bg] connect threw", e);
       scheduleReconnect();
       return;
     }
 
     socket.onopen = () => {
-      console.log("[SpotifyNP-bg] connected to relay, channel:", channel);
+      console.log("[MusicNP-bg] connected, channel:", channel);
       socket.send(JSON.stringify({ role: "publisher", channel }));
-      if (lastPayload) {
-        socket.send(JSON.stringify({ type: "nowplaying", channel, data: lastPayload }));
-      }
+      publishActive(); // push current state to any waiting widget
     };
-
-    socket.onclose = () => {
-      console.log("[SpotifyNP-bg] relay disconnected, retrying in 3s");
-      scheduleReconnect();
-    };
-    socket.onerror = (e) => {
-      console.log("[SpotifyNP-bg] relay error", e);
-      try { socket.close(); } catch (_) {}
-    };
+    socket.onclose = () => { console.log("[MusicNP-bg] disconnected"); scheduleReconnect(); };
+    socket.onerror = (e) => { console.log("[MusicNP-bg] error", e); try { socket.close(); } catch (_) {} };
   });
 }
 
@@ -64,14 +55,41 @@ function scheduleReconnect() {
   reconnectTimer = setTimeout(connect, 3000);
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+// Decide which open tab the widget should show.
+// Priority: a tab that is currently playing (most recent wins);
+// otherwise the most recently updated tab (so a paused track still shows).
+function chooseActive() {
+  const now = Date.now();
+  const states = Array.from(tabStates.values()).filter((s) => now - s.ts < 10000);
+  if (!states.length) return null;
+  const playing = states.filter((s) => s.isPlaying).sort((a, b) => b.ts - a.ts);
+  if (playing.length) return playing[0];
+  states.sort((a, b) => b.ts - a.ts);
+  return states[0];
+}
+
+function publishActive() {
+  const active = chooseActive();
+  if (active && socket && socket.readyState === WebSocket.OPEN && currentChannel) {
+    socket.send(JSON.stringify({ type: "nowplaying", channel: currentChannel, data: active.data }));
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg && msg.type === "nowplaying") {
-    lastPayload = msg.data;
-    ensureConfig().then(({ channel }) => {
-      if (socket && socket.readyState === WebSocket.OPEN && channel) {
-        socket.send(JSON.stringify({ type: "nowplaying", channel, data: msg.data }));
-      }
-    });
+    const id = sender && sender.tab ? sender.tab.id : "ext";
+    tabStates.set(id, { data: msg.data, isPlaying: !!msg.data.isPlaying, ts: Date.now() });
+    publishActive();
+  }
+});
+
+// Forget a tab when it closes so it can't keep "owning" the widget.
+chrome.tabs.onRemoved.addListener((tabId) => tabStates.delete(tabId));
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.channel) {
+    try { socket && socket.close(); } catch (_) {}
+    connect();
   }
 });
 
