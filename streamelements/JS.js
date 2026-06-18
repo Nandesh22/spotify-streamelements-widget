@@ -108,30 +108,39 @@ function start() {
   };
 
   function applyData(d) {
-    state.track = d.track;
-    state.artist = d.artist;
-    state.durationMs = d.durationMs || 0;
-    state.positionMs = d.positionMs || 0;
-    state.isPlaying = !!d.isPlaying;
-    state.lastSyncWall = Date.now();
-    if (d.cover !== state.cover) {
-      state.cover = d.cover;
-      if (d.cover) {
-        els.cover.src = d.cover;
-        if (AUTO_COLOR || PANEL_GLASS) sampleColors(d.cover);
+    try {
+      state.track = d.track;
+      state.artist = d.artist;
+      state.durationMs = d.durationMs || 0;
+      state.positionMs = d.positionMs || 0;
+      state.isPlaying = !!d.isPlaying;
+      state.lastSyncWall = Date.now();
+      if (d.cover !== state.cover) {
+        state.cover = d.cover;
+        if (d.cover) {
+          els.cover.src = d.cover;
+          if (AUTO_COLOR || PANEL_GLASS) sampleColors(d.cover);
+        } else {
+          els.cover.removeAttribute("src");
+        }
       }
+      if (d.source !== state.source) {
+        state.source = d.source;
+        els.logo.innerHTML = LOGOS[d.source] || LOGOS["Music"];
+      }
+      els.track.textContent = d.track || "";
+      els.artist.textContent = d.artist || "";
+      els.iconPlay.style.display = state.isPlaying ? "none" : "block";
+      els.iconPause.style.display = state.isPlaying ? "block" : "none";
+      const visible = d.track && (state.isPlaying || !HIDE_PAUSED);
+      els.card.classList.toggle("show", !!visible);
+    } catch (e) {
+      /* never let a bad payload break the widget */
     }
-    if (d.source !== state.source) {
-      state.source = d.source;
-      els.logo.innerHTML = LOGOS[d.source] || LOGOS["Music"];
-    }
-    els.track.textContent = d.track || "";
-    els.artist.textContent = d.artist || "";
-    els.iconPlay.style.display = state.isPlaying ? "none" : "block";
-    els.iconPause.style.display = state.isPlaying ? "block" : "none";
-    const visible = d.track && (state.isPlaying || !HIDE_PAUSED);
-    els.card.classList.toggle("show", !!visible);
   }
+
+  // If album art fails to load, don't leave a broken white box.
+  els.cover.onerror = function () { els.cover.removeAttribute("src"); };
 
   // ---- Visualizer ----------------------------------------------------------
   const canvas = document.getElementById("viz");
@@ -178,7 +187,7 @@ function start() {
         if (PANEL_GLASS) {
           const g1 = "rgba(" + best.r + "," + best.g + "," + best.b + ",0.42)";
           const g2 = "rgba(" + avg.r + "," + avg.g + "," + avg.b + ",0.16)";
-          setVar("--panelBg", "linear-gradient(135deg," + g1 + "," + g2 + ")");
+          setVar("--panelBg", "linear-gradient(135deg," + g1 + "," + g2 + "), rgba(20,18,16,0.92)");
           document.getElementById("panel").classList.add("glass");
         }
       } catch (e) {
@@ -364,15 +373,30 @@ function start() {
 
   // ---- Progress / time render ----------------------------------------------
   function render() {
-    let pos = state.positionMs;
-    if (state.isPlaying) pos += Date.now() - state.lastSyncWall;
-    if (state.durationMs) pos = Math.min(pos, state.durationMs);
-    const pct = state.durationMs ? (pos / state.durationMs) * 100 : 0;
-    els.fill.style.width = pct + "%";
-    els.knob.style.left = pct + "%";
-    els.cur.textContent = fmt(pos);
-    els.dur.textContent = fmt(state.durationMs);
-    els.badge.textContent = fmt(state.durationMs);
+    try {
+      let pos = state.positionMs;
+      if (state.isPlaying) pos += Date.now() - state.lastSyncWall;
+      if (state.durationMs) pos = Math.min(pos, state.durationMs);
+
+      if (state.durationMs > 0) {
+        const pct = (pos / state.durationMs) * 100;
+        els.fill.style.width = pct + "%";
+        els.knob.style.left = pct + "%";
+        els.knob.style.display = "";
+        els.cur.textContent = fmt(pos);
+        els.dur.textContent = fmt(state.durationMs);
+        els.badge.textContent = fmt(state.durationMs);
+      } else {
+        // Unknown duration (some tracks/podcasts): show elapsed, no total.
+        els.fill.style.width = "0%";
+        els.knob.style.display = "none";
+        els.cur.textContent = state.track ? fmt(pos) : "0:00";
+        els.dur.textContent = "";
+        els.badge.textContent = "";
+      }
+    } catch (e) {
+      /* keep the animation loop alive no matter what */
+    }
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
