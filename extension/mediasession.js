@@ -32,6 +32,13 @@
     return s * 1000;
   }
 
+  // Spotify's now-playing bar uses a ~64px thumbnail. Upgrade the CDN size code
+  // to the 640px version so the widget shows a sharp image.
+  function hiResSpotify(url) {
+    if (!url) return url;
+    return url.replace(/(i\.scdn\.co\/image\/ab67616d)0000[0-9a-f]{4}/i, "$10000b273");
+  }
+
   function findMedia() {
     const els = Array.from(document.querySelectorAll("audio, video"));
     let best = null;
@@ -86,7 +93,7 @@
     return {
       track,
       artist,
-      cover: coverEl ? coverEl.src : "",
+      cover: coverEl ? hiResSpotify(coverEl.src) : "",
       durationMs: timeToMs(durEl ? durEl.textContent : ""),
       positionMs: timeToMs(posEl ? posEl.textContent : ""),
       isPlaying,
@@ -115,7 +122,7 @@
         isPlaying = dom.isPlaying;
       }
       if (!cover && md && md.artwork && md.artwork.length) {
-        cover = md.artwork[md.artwork.length - 1].src || "";
+        cover = hiResSpotify(md.artwork[md.artwork.length - 1].src || "");
       }
       // Only fall back to mediaSession if the DOM gave us nothing at all.
       if (!track && md && md.title) {
