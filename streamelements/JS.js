@@ -109,12 +109,30 @@ function start() {
 
   function applyData(d) {
     try {
-      state.track = d.track;
-      state.artist = d.artist;
+      const now = Date.now();
+      const trackChanged = d.track !== state.track || d.source !== state.source;
+
+      // Current smoothly-interpolated position from the existing clock.
+      let interp = state.positionMs + (state.isPlaying ? now - state.lastSyncWall : 0);
+      if (state.durationMs) interp = Math.min(interp, state.durationMs);
+
+      const incoming = d.positionMs || 0;
       state.durationMs = d.durationMs || 0;
-      state.positionMs = d.positionMs || 0;
+
+      if (trackChanged) {
+        // New song: trust the incoming position.
+        state.positionMs = incoming;
+      } else if (Math.abs(incoming - interp) > 2500) {
+        // Big jump = a real seek; resync to it.
+        state.positionMs = incoming;
+      } else {
+        // Small ±1s noise from low-resolution sources: keep the smooth clock
+        // so the timestamp never stutters backward.
+        state.positionMs = interp;
+      }
+      state.lastSyncWall = now;
       state.isPlaying = !!d.isPlaying;
-      state.lastSyncWall = Date.now();
+
       if (d.cover !== state.cover) {
         state.cover = d.cover;
         if (d.cover) {
@@ -128,6 +146,8 @@ function start() {
         state.source = d.source;
         els.logo.innerHTML = LOGOS[d.source] || LOGOS["Music"];
       }
+      state.track = d.track;
+      state.artist = d.artist;
       els.track.textContent = d.track || "";
       els.artist.textContent = d.artist || "";
       els.iconPlay.style.display = state.isPlaying ? "none" : "block";
