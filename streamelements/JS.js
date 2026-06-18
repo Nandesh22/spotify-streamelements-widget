@@ -118,7 +118,7 @@ function start() {
       state.cover = d.cover;
       if (d.cover) {
         els.cover.src = d.cover;
-        if (AUTO_COLOR) sampleColors(d.cover);
+        if (AUTO_COLOR || PANEL_GLASS) sampleColors(d.cover);
       }
     }
     if (d.source !== state.source) {
@@ -140,6 +140,7 @@ function start() {
   let vizColor = FD.visualizerColor || "#e7b54a";
   const AUDIO_GAIN = parseFloat(FD.audioGain) || 1.6;
   const AUTO_COLOR = FD.autoColor === "yes";
+  const PANEL_GLASS = FD.panelGlass === "yes";
 
   // Pull the dominant/vibrant color from the album art and recolor the widget.
   function sampleColors(url) {
@@ -153,20 +154,33 @@ function start() {
         cx.drawImage(img, 0, 0, n, n);
         const data = cx.getImageData(0, 0, n, n).data;
         let best = { score: -1, r: 231, g: 181, b: 74 };
+        let ar = 0, ag = 0, ab = 0, cnt = 0;
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
           if (a < 128) continue;
+          ar += r; ag += g; ab += b; cnt++;
           const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
           const sat = mx === 0 ? 0 : (mx - mn) / mx;
           const bright = mx / 255;
           const score = sat * 0.75 + bright * 0.25;
           if (bright > 0.18 && bright < 0.97 && score > best.score) best = { score, r, g, b };
         }
-        const accent = "rgb(" + best.r + "," + best.g + "," + best.b + ")";
-        setVar("--accent", accent);
-        setVar("--border", accent);
-        setVar("--glow", "rgba(" + best.r + "," + best.g + "," + best.b + ",0.55)");
-        vizColor = accent;
+        if (!cnt) return;
+        const avg = { r: Math.round(ar / cnt), g: Math.round(ag / cnt), b: Math.round(ab / cnt) };
+
+        if (AUTO_COLOR) {
+          const accent = "rgb(" + best.r + "," + best.g + "," + best.b + ")";
+          setVar("--accent", accent);
+          setVar("--border", accent);
+          setVar("--glow", "rgba(" + best.r + "," + best.g + "," + best.b + ",0.55)");
+          vizColor = accent;
+        }
+        if (PANEL_GLASS) {
+          const g1 = "rgba(" + best.r + "," + best.g + "," + best.b + ",0.42)";
+          const g2 = "rgba(" + avg.r + "," + avg.g + "," + avg.b + ",0.16)";
+          setVar("--panelBg", "linear-gradient(135deg," + g1 + "," + g2 + ")");
+          document.getElementById("panel").classList.add("glass");
+        }
       } catch (e) {
         /* Album CDN didn't allow cross-origin reads; keep configured colors. */
       }

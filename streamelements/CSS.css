@@ -72,6 +72,11 @@
   border-radius: calc(var(--radius) - 6px);
   padding: 16px 18px 94px;
 }
+#panel.glass {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
 
 #meta { display: flex; align-items: center; gap: 14px; }
 #logo { flex: 0 0 auto; width: 40px; height: 40px; }

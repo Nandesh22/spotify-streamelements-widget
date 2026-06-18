@@ -101,6 +101,12 @@
     "value": "yes",
     "options": { "yes": "Yes", "no": "No" }
   },
+  "panelGlass": {
+    "type": "dropdown",
+    "label": "Glass panel tinted by album color",
+    "value": "no",
+    "options": { "yes": "Yes", "no": "No" }
+  },
 
   "cardWidth": { "type": "slider", "label": "Card width (px)", "value": 360, "min": 240, "max": 600, "step": 5 },
   "albumHeight": { "type": "slider", "label": "Album art height (px)", "value": 470, "min": 200, "max": 700, "step": 5 },
